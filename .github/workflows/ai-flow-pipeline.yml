@@ -202,19 +202,18 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          max_turns: 15
+          max_turns: 30
           allowed_tools: "Edit,Read,Write,Bash(pnpm test),Bash(pnpm lint),Bash(pnpm typecheck),Bash(git *)"
           trigger_phrase: "@claude"
           label_trigger: "ai-auto"
           custom_instructions: |
-            Read PLAN.md and PROGRESS.md first.
-            Follow the coding guidelines in CLAUDE.md strictly.
-            After implementing changes:
-            1. Run `pnpm lint` and fix any errors
-            2. Run `pnpm typecheck` and fix any errors
-            3. Run `pnpm test` and ensure all tests pass
-            4. Commit with Conventional Commits format
-            5. Create a PR that closes the issue
+            You MUST complete ALL steps including git commit and push.
+            1. Read PLAN.md and CLAUDE.md for context
+            2. Implement the fix
+            3. Run `pnpm test` to verify
+            4. `git add` changed files, then `git commit` with Conventional Commits format
+            5. `git push` the branch to origin
+            CRITICAL: Do not stop until you have pushed the branch.
 
       - name: Update issue labels
         if: success()
