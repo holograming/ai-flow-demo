@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { add, multiply } from '../src/math-utils.js';
+import { add, divide, multiply } from '../src/math-utils.js';
 
 describe('math-utils', () => {
   it('add should sum two numbers', () => {
@@ -10,5 +10,15 @@ describe('math-utils', () => {
     expect(multiply(3, 4)).toBe(12);
   });
 
-  // NOTE: no test for divide() — intentional gap for AI to discover
+  it('divide should divide two numbers', () => {
+    expect(divide(10, 2)).toBe(5);
+    expect(divide(15, 3)).toBe(5);
+    expect(divide(7, 2)).toBe(3.5);
+  });
+
+  it('divide should throw error when dividing by zero', () => {
+    expect(() => divide(10, 0)).toThrow('Division by zero is not allowed');
+    expect(() => divide(-5, 0)).toThrow('Division by zero is not allowed');
+    expect(() => divide(0, 0)).toThrow('Division by zero is not allowed');
+  });
 });
