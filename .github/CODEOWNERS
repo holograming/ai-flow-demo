@@ -1,0 +1,16 @@
+# AI.Flow CODEOWNERS
+# These files require specific reviewers when modified.
+
+# Security-sensitive files - require admin review
+.github/workflows/    @holograming
+CLAUDE.md             @holograming
+.claude/              @holograming
+.env*                 @holograming
+
+# Core config - require lead review
+package.json          @holograming
+tsconfig.json         @holograming
+biome.json            @holograming
+
+# Source code
+src/                  @holograming

@@ -1,0 +1,112 @@
+name: AI.Flow Auto Merge
+
+on:
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request != null ||
+      github.event.check_suite != null
+    steps:
+      - name: Check auto-merge conditions
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Find the PR
+            let prNumber;
+            if (context.payload.pull_request) {
+              prNumber = context.payload.pull_request.number;
+            } else if (context.payload.check_suite) {
+              const prs = context.payload.check_suite.pull_requests;
+              if (prs.length === 0) return;
+              prNumber = prs[0].number;
+            }
+            if (!prNumber) return;
+
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: prNumber
+            });
+
+            const labels = pr.labels.map(l => l.name);
+
+            // Must have ai-auto-merge-ok label
+            if (!labels.includes('ai-auto-merge-ok')) {
+              core.info('No ai-auto-merge-ok label, skipping');
+              return;
+            }
+
+            // Must be AI-generated
+            if (!labels.includes('ai-generated')) {
+              core.info('Not an AI-generated PR, skipping');
+              return;
+            }
+
+            // Check file count and additions
+            const { data: files } = await github.rest.pulls.listFiles({
+              ...context.repo,
+              pull_number: prNumber
+            });
+
+            const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
+
+            if (files.length > 10) {
+              core.info(`Too many files changed (${files.length} > 10), skipping auto-merge`);
+              return;
+            }
+
+            if (totalAdditions > 500) {
+              core.info(`Too many additions (${totalAdditions} > 500), skipping auto-merge`);
+              return;
+            }
+
+            // Check CI status
+            const { data: checks } = await github.rest.checks.listForRef({
+              ...context.repo,
+              ref: pr.head.sha
+            });
+
+            const allPassed = checks.check_runs.every(
+              c => c.conclusion === 'success' || c.conclusion === 'skipped'
+            );
+
+            if (!allPassed) {
+              core.info('Not all checks passed, skipping auto-merge');
+              return;
+            }
+
+            // Check reviews
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              ...context.repo,
+              pull_number: prNumber
+            });
+
+            // Level 0 doesn't need human approval
+            const isLevel0 = labels.includes('difficulty/trivial');
+            const hasApproval = reviews.some(r => r.state === 'APPROVED');
+
+            if (!isLevel0 && !hasApproval) {
+              core.info('No human approval and not Level 0, skipping');
+              return;
+            }
+
+            // All conditions met - merge
+            try {
+              await github.rest.pulls.merge({
+                ...context.repo,
+                pull_number: prNumber,
+                merge_method: 'squash'
+              });
+              core.info(`PR #${prNumber} auto-merged successfully`);
+            } catch (e) {
+              core.error(`Failed to auto-merge PR #${prNumber}: ${e.message}`);
+            }
