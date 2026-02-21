@@ -19,6 +19,7 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  id-token: write
 
 jobs:
   # ── Gate: Should AI process this? ──────────────────────────────
@@ -203,7 +204,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           max_turns: 15
           allowed_tools: "Edit,Read,Write,Bash(pnpm test),Bash(pnpm lint),Bash(pnpm typecheck)"
-          prompt: |
+          direct_prompt: |
             Read PLAN.md and PROGRESS.md first.
             Implement the solution for issue #${{ github.event.issue.number }}.
             Follow the coding guidelines in CLAUDE.md.
